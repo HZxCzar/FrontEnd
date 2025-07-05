@@ -546,7 +546,7 @@ def main():
         
         if st.button("🔄 重新加载数据"):
             st.cache_data.clear()
-            st.experimental_rerun()
+            st.rerun()
     
     # 应用筛选
     display_df = df.copy()
