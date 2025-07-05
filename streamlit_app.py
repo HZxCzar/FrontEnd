@@ -2,7 +2,7 @@
 """
 更新版AI模型结果表格展示
 新增Score列，重新调整列顺序：
-1. 模型名称 2. Score 3. 最低Loss 4. 测试集均值 5. 各个benchmark
+1. 模型名称 2. Score 3. Loss(2000步) 4. 测试集均值 5. 各个benchmark
 """
 
 import streamlit as st
@@ -195,8 +195,8 @@ def parse_test_results(test_string):
         print(f"解析测试结果时出错: {e}")
         return {}
 
-def get_min_loss(train_string):
-    """从训练数据中提取最低loss"""
+def get_loss_at_step_2000(train_string):
+    """从训练数据中提取2000步时的loss，如果没有2000步则返回None"""
     if not train_string:
         return None
     
@@ -207,17 +207,22 @@ def get_min_loss(train_string):
         return None
     
     try:
+        step_line = lines[0]
         loss_line = lines[1]
-        parts = loss_line.split(',')
         
-        loss_values = []
-        for part in parts[1:]:  # 跳过第一个元素（标签）
+        steps = [s.strip() for s in step_line.split(',')[1:]]  # 跳过第一个标签
+        losses = [l.strip() for l in loss_line.split(',')[1:]]  # 跳过第一个标签
+        
+        # 查找2000步对应的loss
+        for step, loss in zip(steps, losses):
             try:
-                loss_values.append(float(part.strip()))
+                if int(step) == 2000:
+                    return float(loss)
             except ValueError:
                 continue
         
-        return min(loss_values) if loss_values else None
+        # 如果没找到2000步，返回None
+        return None
     except Exception as e:
         print(f"解析训练数据时出错: {e}")
         return None
@@ -231,7 +236,7 @@ def create_styled_table(df):
         
         # 定义需要高亮的列
         score_column = 'Score'
-        loss_column = '最低Loss'
+        loss_column = 'Loss'
         avg_column = '测试集均值'
         benchmark_columns = [
             'ARC Challenge', 'ARC Easy', 'BoolQ', 'FDA', 'HellaSwag', 
@@ -297,7 +302,7 @@ def create_styled_table(df):
 
 def create_performance_summary(df):
     """创建性能摘要"""
-    summary_columns = ['Score', '最低Loss', '测试集均值']
+    summary_columns = ['Score', 'Loss', '测试集均值']
     benchmark_columns = [
         'ARC Challenge', 'ARC Easy', 'BoolQ', 'FDA', 'HellaSwag', 
         'LAMBDA OpenAI', 'OpenBookQA', 'PIQA', 'Social IQA', 
@@ -313,7 +318,7 @@ def create_performance_summary(df):
             valid_data = numeric_series.dropna()
             
             if len(valid_data) > 0:
-                if col == '最低Loss':
+                if col == 'Loss':
                     best_value = valid_data.min()
                     best_idx = numeric_series.idxmin()
                     direction = "↓"
@@ -377,16 +382,16 @@ def main():
         if not result.get('name'):
             continue
             
-        # 按照要求的列顺序：名字、Score、Loss、测试集均值、各个benchmark
+        # 按照要求的列顺序：名字、Score、Loss(2000步)、测试集均值、各个benchmark
         row = {'模型名称': result['name']}
         
         # Score（新增字段）
         score = result.get('score')
         row['Score'] = score if score is not None else np.nan
         
-        # 最低loss
-        min_loss = get_min_loss(result.get('train', ''))
-        row['最低Loss'] = min_loss
+        # 2000步的loss
+        loss_2000 = get_loss_at_step_2000(result.get('train', ''))
+        row['Loss'] = loss_2000 if loss_2000 is not None else np.nan
         
         # 测试结果解析
         test_results = parse_test_results(result.get('test', ''))
@@ -507,7 +512,7 @@ def main():
         <strong>📖 图例说明:</strong><br>
         🟢 <strong>绿色高亮</strong>: 该列最优值 (Score、测试集均值、各benchmark越高越好，Loss越低越好)<br>
         🟡 <strong>黄色背景 + 橙色左边框</strong>: delta_net (Baseline模型)<br>
-        📊 <strong>列顺序</strong>: 模型名称 → Score → 最低Loss → 测试集均值 → 12个benchmark详情
+        📊 <strong>列顺序</strong>: 模型名称 → Score → Loss(2000步) → 测试集均值 → 12个benchmark详情
     </div>
     """, unsafe_allow_html=True)
     
@@ -519,7 +524,7 @@ def main():
         st.header("🎛️ 显示选项")
         
         # 排序选项
-        sort_options = ["模型名称", "Score", "最低Loss", "测试集均值"]
+        sort_options = ["模型名称", "Score", "Loss", "测试集均值"]
         sort_by = st.selectbox("排序依据", sort_options, index=1)  # 默认按Score排序
         sort_ascending = st.checkbox("升序排列", value=False)
         
@@ -566,7 +571,7 @@ def main():
     
     # 应用排序
     if sort_by in display_df.columns:
-        if sort_by in ['Score', '最低Loss', '测试集均值']:
+        if sort_by in ['Score', 'Loss', '测试集均值']:
             numeric_col = pd.to_numeric(display_df[sort_by], errors='coerce')
             display_df = display_df.loc[numeric_col.sort_values(ascending=sort_ascending).index]
         else:
