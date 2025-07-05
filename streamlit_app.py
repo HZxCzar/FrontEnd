@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """
-支持本地和远程数据源的AI模型结果表格展示
-- 优先加载本地cache.json文件
-- 如果本地没有，再从GitHub加载
-- 美观的表格设计和高亮显示
+更新版AI模型结果表格展示
+新增Score列，重新调整列顺序：
+1. 模型名称 2. Score 3. 最低Loss 4. 测试集均值 5. 各个benchmark
 """
 
 import streamlit as st
@@ -83,6 +82,16 @@ st.markdown("""
         border-left: 5px solid #007bff;
         margin: 15px 0;
     }
+    
+    /* 列标题样式 */
+    .column-header {
+        font-weight: bold;
+        text-align: center;
+        background-color: #f8f9fa;
+        padding: 8px;
+        border-radius: 5px;
+        margin: 5px 0;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -106,7 +115,7 @@ def load_data():
         except Exception as e:
             st.warning(f"读取本地文件失败: {e}")
     
-    # 如果本地文件不存在或读取失败，尝试从GitHub加载
+    # 如果本地文件不存在，尝试从GitHub加载
     try:
         response = requests.get(GITHUB_RAW_URL, timeout=10)
         if response.status_code == 200:
@@ -121,7 +130,6 @@ def load_data():
     except Exception as e:
         st.error(f"GitHub数据加载错误: {str(e)}")
     
-    # 如果都失败了，返回空数据
     st.session_state['data_source'] = "❌ 无法加载数据"
     return {"results": []}
 
@@ -215,35 +223,52 @@ def get_min_loss(train_string):
         return None
 
 def create_styled_table(df):
-    """创建带样式的表格"""
+    """创建带样式的表格，突出显示最优值"""
     
-    # 定义样式函数
     def highlight_cells(data):
         """高亮最优值和baseline行"""
         styles = pd.DataFrame('', index=data.index, columns=data.columns)
         
-        test_columns = [
+        # 定义需要高亮的列
+        score_column = 'Score'
+        loss_column = '最低Loss'
+        avg_column = '测试集均值'
+        benchmark_columns = [
             'ARC Challenge', 'ARC Easy', 'BoolQ', 'FDA', 'HellaSwag', 
             'LAMBDA OpenAI', 'OpenBookQA', 'PIQA', 'Social IQA', 
-            'SQuAD Completion', 'SWDE', 'WinoGrande', '测试集均值'
+            'SQuAD Completion', 'SWDE', 'WinoGrande'
         ]
         
-        # 高亮最优值
-        for col in data.columns:
-            if col in test_columns:
-                # 测试指标：越高越好
+        # 高亮Score最高值
+        if score_column in data.columns:
+            numeric_series = pd.to_numeric(data[score_column], errors='coerce')
+            if not numeric_series.isna().all():
+                max_idx = numeric_series.idxmax()
+                styles.loc[max_idx, score_column] = 'background-color: #28a745; color: white; font-weight: bold; border-radius: 3px'
+        
+        # 高亮Loss最低值  
+        if loss_column in data.columns:
+            numeric_series = pd.to_numeric(data[loss_column], errors='coerce')
+            if not numeric_series.isna().all():
+                min_idx = numeric_series.idxmin()
+                styles.loc[min_idx, loss_column] = 'background-color: #28a745; color: white; font-weight: bold; border-radius: 3px'
+        
+        # 高亮测试集均值最高值
+        if avg_column in data.columns:
+            numeric_series = pd.to_numeric(data[avg_column], errors='coerce')
+            if not numeric_series.isna().all():
+                max_idx = numeric_series.idxmax()
+                styles.loc[max_idx, avg_column] = 'background-color: #28a745; color: white; font-weight: bold; border-radius: 3px'
+        
+        # 高亮各个benchmark的最优值
+        for col in benchmark_columns:
+            if col in data.columns:
                 numeric_series = pd.to_numeric(data[col], errors='coerce')
                 if not numeric_series.isna().all():
                     max_idx = numeric_series.idxmax()
                     styles.loc[max_idx, col] = 'background-color: #28a745; color: white; font-weight: bold; border-radius: 3px'
-            elif col == '最低Loss':
-                # Loss：越低越好
-                numeric_series = pd.to_numeric(data[col], errors='coerce')
-                if not numeric_series.isna().all():
-                    min_idx = numeric_series.idxmin()
-                    styles.loc[min_idx, col] = 'background-color: #28a745; color: white; font-weight: bold; border-radius: 3px'
         
-        # 高亮baseline行
+        # 高亮baseline行（delta_net）
         for idx in data.index:
             model_name = str(data.loc[idx, '模型名称']).lower()
             if model_name == 'delta_net':
@@ -258,27 +283,31 @@ def create_styled_table(df):
     # 应用样式并格式化
     styled_df = df.style.apply(highlight_cells, axis=None)
     
-    # 格式化数值
+    # 格式化数值显示
     format_dict = {}
     for col in df.columns:
         if col != '模型名称':
-            format_dict[col] = lambda x: f"{x:.4f}" if pd.notna(x) and isinstance(x, (int, float)) else ("N/A" if pd.isna(x) else str(x))
+            if col == 'Score':
+                format_dict[col] = lambda x: f"{x:.6f}" if pd.notna(x) and isinstance(x, (int, float)) else ("N/A" if pd.isna(x) else str(x))
+            else:
+                format_dict[col] = lambda x: f"{x:.4f}" if pd.notna(x) and isinstance(x, (int, float)) else ("N/A" if pd.isna(x) else str(x))
     
     styled_df = styled_df.format(format_dict)
-    
     return styled_df
 
 def create_performance_summary(df):
     """创建性能摘要"""
-    test_columns = [
+    summary_columns = ['Score', '最低Loss', '测试集均值']
+    benchmark_columns = [
         'ARC Challenge', 'ARC Easy', 'BoolQ', 'FDA', 'HellaSwag', 
         'LAMBDA OpenAI', 'OpenBookQA', 'PIQA', 'Social IQA', 
-        'SQuAD Completion', 'SWDE', 'WinoGrande', '测试集均值', '最低Loss'
+        'SQuAD Completion', 'SWDE', 'WinoGrande'
     ]
     
+    all_columns = summary_columns + benchmark_columns
     summary_data = []
     
-    for col in test_columns:
+    for col in all_columns:
         if col in df.columns:
             numeric_series = pd.to_numeric(df[col], errors='coerce')
             valid_data = numeric_series.dropna()
@@ -295,9 +324,15 @@ def create_performance_summary(df):
                 
                 best_model = df.loc[best_idx, '模型名称']
                 
+                # 格式化显示
+                if col == 'Score':
+                    formatted_value = f"{best_value:.6f}"
+                else:
+                    formatted_value = f"{best_value:.4f}"
+                
                 summary_data.append({
                     '指标': col,
-                    '最优值': f"{best_value:.4f}",
+                    '最优值': formatted_value,
                     '最优模型': best_model,
                     '趋势': direction
                 })
@@ -323,8 +358,6 @@ def main():
     
     if not results:
         st.error("❌ 没有找到数据")
-        
-        # 提供帮助信息
         st.info("**数据加载指南:**")
         st.markdown("""
         **本地测试:**
@@ -335,48 +368,60 @@ def main():
         1. 推送 `cache.json` 到GitHub仓库
         2. 应用会自动从GitHub加载数据
         """)
-        
         return
     
-    # 处理数据
+    # 处理数据，按新的列顺序组织
     table_data = []
     
     for result in results:
         if not result.get('name'):
             continue
             
+        # 按照要求的列顺序：名字、Score、Loss、测试集均值、各个benchmark
         row = {'模型名称': result['name']}
+        
+        # Score（新增字段）
+        score = result.get('score')
+        row['Score'] = score if score is not None else np.nan
         
         # 最低loss
         min_loss = get_min_loss(result.get('train', ''))
         row['最低Loss'] = min_loss
         
-        # 测试结果
+        # 测试结果解析
         test_results = parse_test_results(result.get('test', ''))
         
-        test_datasets = [
+        # 先计算测试集均值，放在第4列
+        benchmark_datasets = [
             'ARC Challenge', 'ARC Easy', 'BoolQ', 'FDA', 'HellaSwag', 
             'LAMBDA OpenAI', 'OpenBookQA', 'PIQA', 'Social IQA', 
             'SQuAD Completion', 'SWDE', 'WinoGrande'
         ]
         
         test_values = []
-        for dataset in test_datasets:
+        benchmark_data = {}
+        
+        # 收集benchmark数据
+        for dataset in benchmark_datasets:
             if dataset in test_results:
                 value = test_results[dataset]
-                row[dataset] = value
+                benchmark_data[dataset] = value
                 if isinstance(value, (int, float)):
                     test_values.append(value)
             else:
-                row[dataset] = np.nan
+                benchmark_data[dataset] = np.nan
         
-        # 测试集均值
+        # 计算测试集均值
         if test_values:
             row['测试集均值'] = np.mean(test_values)
         elif 'Average' in test_results:
             row['测试集均值'] = test_results['Average']
         else:
             row['测试集均值'] = np.nan
+        
+        # 添加各个benchmark（第5列开始）
+        for dataset in benchmark_datasets:
+            row[dataset] = benchmark_data[dataset]
         
         table_data.append(row)
     
@@ -387,7 +432,7 @@ def main():
     df = pd.DataFrame(table_data)
     
     # 统计卡片
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3, col4, col5 = st.columns(5)
     
     with col1:
         st.markdown(f"""
@@ -408,6 +453,26 @@ def main():
         """, unsafe_allow_html=True)
     
     with col3:
+        # 最高Score
+        if 'Score' in df.columns:
+            numeric_score = pd.to_numeric(df['Score'], errors='coerce')
+            if not numeric_score.isna().all():
+                max_score = numeric_score.max()
+                st.markdown(f"""
+                <div class="metric-card">
+                    <h3>🎯 最高Score</h3>
+                    <h2>{max_score:.4f}</h2>
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.markdown(f"""
+                <div class="metric-card">
+                    <h3>🎯 最高Score</h3>
+                    <h2>N/A</h2>
+                </div>
+                """, unsafe_allow_html=True)
+    
+    with col4:
         last_update = cache.get("last_update", "未知")
         if last_update != "未知":
             try:
@@ -421,7 +486,7 @@ def main():
         </div>
         """, unsafe_allow_html=True)
     
-    with col4:
+    with col5:
         baseline_perf = "N/A"
         for _, row in df.iterrows():
             if str(row['模型名称']).lower() == 'delta_net':
@@ -430,7 +495,7 @@ def main():
                 break
         st.markdown(f"""
         <div class="metric-card">
-            <h3>🎯 Baseline</h3>
+            <h3>🏁 Baseline</h3>
             <h2>{baseline_perf}</h2>
         </div>
         """, unsafe_allow_html=True)
@@ -440,9 +505,9 @@ def main():
     st.markdown("""
     <div class="legend">
         <strong>📖 图例说明:</strong><br>
-        🟢 <strong>绿色高亮</strong>: 该列最优值 (测试指标越高越好，Loss越低越好)<br>
+        🟢 <strong>绿色高亮</strong>: 该列最优值 (Score、测试集均值、各benchmark越高越好，Loss越低越好)<br>
         🟡 <strong>黄色背景 + 橙色左边框</strong>: delta_net (Baseline模型)<br>
-        📊 <strong>数据说明</strong>: 自动从本地或GitHub加载最新数据
+        📊 <strong>列顺序</strong>: 模型名称 → Score → 最低Loss → 测试集均值 → 12个benchmark详情
     </div>
     """, unsafe_allow_html=True)
     
@@ -454,12 +519,30 @@ def main():
         st.header("🎛️ 显示选项")
         
         # 排序选项
-        sort_options = ["模型名称", "最低Loss", "测试集均值"]
-        sort_by = st.selectbox("排序依据", sort_options, index=2)
+        sort_options = ["模型名称", "Score", "最低Loss", "测试集均值"]
+        sort_by = st.selectbox("排序依据", sort_options, index=1)  # 默认按Score排序
         sort_ascending = st.checkbox("升序排列", value=False)
         
         # 筛选选项
         show_only_complete = st.checkbox("只显示完整数据", value=False)
+        
+        # Score范围筛选
+        if 'Score' in df.columns:
+            score_series = pd.to_numeric(df['Score'], errors='coerce')
+            if not score_series.isna().all():
+                min_score = float(score_series.min())
+                max_score = float(score_series.max())
+                score_range = st.slider(
+                    "Score范围筛选", 
+                    min_value=min_score, 
+                    max_value=max_score, 
+                    value=(min_score, max_score),
+                    step=0.001
+                )
+            else:
+                score_range = None
+        else:
+            score_range = None
         
         if st.button("🔄 重新加载数据"):
             st.cache_data.clear()
@@ -469,16 +552,21 @@ def main():
     display_df = df.copy()
     
     if show_only_complete:
-        # 筛选出完整数据的行
-        test_cols = ['ARC Challenge', 'ARC Easy', 'BoolQ', 'FDA', 'HellaSwag', 
-                    'LAMBDA OpenAI', 'OpenBookQA', 'PIQA', 'Social IQA', 
-                    'SQuAD Completion', 'SWDE', 'WinoGrande']
-        complete_mask = display_df[test_cols].notna().all(axis=1)
+        benchmark_cols = ['ARC Challenge', 'ARC Easy', 'BoolQ', 'FDA', 'HellaSwag', 
+                         'LAMBDA OpenAI', 'OpenBookQA', 'PIQA', 'Social IQA', 
+                         'SQuAD Completion', 'SWDE', 'WinoGrande']
+        complete_mask = display_df[benchmark_cols].notna().all(axis=1)
         display_df = display_df[complete_mask]
+    
+    # Score范围筛选
+    if score_range and 'Score' in display_df.columns:
+        score_series = pd.to_numeric(display_df['Score'], errors='coerce')
+        score_mask = (score_series >= score_range[0]) & (score_series <= score_range[1])
+        display_df = display_df[score_mask]
     
     # 应用排序
     if sort_by in display_df.columns:
-        if sort_by in ['最低Loss', '测试集均值']:
+        if sort_by in ['Score', '最低Loss', '测试集均值']:
             numeric_col = pd.to_numeric(display_df[sort_by], errors='coerce')
             display_df = display_df.loc[numeric_col.sort_values(ascending=sort_ascending).index]
         else:
@@ -488,10 +576,10 @@ def main():
     st.dataframe(
         display_df,
         use_container_width=True,
-        height=min(600, len(display_df) * 45 + 100)
+        height=min(700, len(display_df) * 45 + 100)
     )
     
-    # 性能摘要
+    # 性能摘要和图表
     st.markdown("---")
     col1, col2 = st.columns(2)
     
@@ -502,18 +590,20 @@ def main():
     
     with col2:
         st.markdown("### 📈 Top 5 模型对比")
-        if '测试集均值' in df.columns:
-            chart_df = df.dropna(subset=['测试集均值']).nlargest(5, '测试集均值')
+        
+        # 按Score排序显示Top 5
+        if 'Score' in df.columns:
+            chart_df = df.dropna(subset=['Score']).nlargest(5, 'Score')
             
             if not chart_df.empty:
                 fig = px.bar(
                     chart_df,
-                    x='测试集均值',
+                    x='Score',
                     y='模型名称',
                     orientation='h',
-                    color='测试集均值',
+                    color='Score',
                     color_continuous_scale='viridis',
-                    title="测试集平均性能 Top 5"
+                    title="Top 5 模型Score排行"
                 )
                 fig.update_layout(
                     height=300,
@@ -521,6 +611,8 @@ def main():
                     yaxis={'categoryorder': 'total ascending'}
                 )
                 st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info("缺少Score数据")
     
     # 下载功能
     st.markdown("---")
@@ -536,13 +628,14 @@ def main():
         )
     
     with col2:
-        if st.button("📋 显示数据统计"):
+        if st.button("📊 显示数据统计"):
             st.info(f"""
             **数据统计:**
             - 总模型数: {len(df)}
             - 显示模型数: {len(display_df)}
             - 数据来源: {st.session_state.get('data_source', '未知')}
             - 最后更新: {cache.get('last_update', '未知')}
+            - 有Score数据: {len(df.dropna(subset=['Score']))} 个模型
             """)
 
 if __name__ == "__main__":
