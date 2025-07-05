@@ -1,9 +1,18 @@
 #!/usr/bin/env python3
+"""
+支持本地和远程数据源的AI模型结果表格展示
+- 优先加载本地cache.json文件
+- 如果本地没有，再从GitHub加载
+- 美观的表格设计和高亮显示
+"""
+
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 import json
 import requests
+import os
 from datetime import datetime
 import numpy as np
 
@@ -14,27 +23,143 @@ st.set_page_config(
     layout="wide"
 )
 
-# GitHub Raw URL - 这里使用你的仓库地址
+# 自定义CSS样式
+st.markdown("""
+<style>
+    /* 隐藏默认元素 */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    
+    /* 美化表格 */
+    .stDataFrame > div {
+        border-radius: 10px;
+        border: 2px solid #e1e5e9;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+    }
+    
+    /* 标题样式 */
+    .main-title {
+        font-size: 2.8rem;
+        font-weight: bold;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    
+    /* 指标卡片 */
+    .metric-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 20px;
+        border-radius: 15px;
+        color: white;
+        text-align: center;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        margin: 10px 0;
+        transition: transform 0.3s ease;
+    }
+    
+    .metric-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    /* 数据源信息 */
+    .data-source {
+        background-color: #e7f3ff;
+        padding: 10px;
+        border-radius: 5px;
+        border-left: 4px solid #007bff;
+        margin: 10px 0;
+        font-size: 0.9rem;
+    }
+    
+    /* 说明文字 */
+    .legend {
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 10px;
+        border-left: 5px solid #007bff;
+        margin: 15px 0;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# 数据源配置
+LOCAL_CACHE_FILE = "cache.json"
 GITHUB_RAW_URL = "https://raw.githubusercontent.com/HZxCzar/FrontEnd/main/cache.json"
 
 @st.cache_data(ttl=300)
-def load_data_from_github():
+def load_data():
+    """智能加载数据：优先本地，后备远程"""
+    data_source = ""
+    
+    # 首先尝试加载本地文件
+    if os.path.exists(LOCAL_CACHE_FILE):
+        try:
+            with open(LOCAL_CACHE_FILE, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                data_source = f"📁 本地文件: {LOCAL_CACHE_FILE}"
+                st.session_state['data_source'] = data_source
+                return data
+        except Exception as e:
+            st.warning(f"读取本地文件失败: {e}")
+    
+    # 如果本地文件不存在或读取失败，尝试从GitHub加载
     try:
         response = requests.get(GITHUB_RAW_URL, timeout=10)
         if response.status_code == 200:
-            return response.json()
+            data = response.json()
+            data_source = f"🌐 远程GitHub: {GITHUB_RAW_URL}"
+            st.session_state['data_source'] = data_source
+            return data
         else:
-            st.error(f"无法获取数据，状态码: {response.status_code}")
-            return {"results": []}
+            st.error(f"GitHub数据加载失败，状态码: {response.status_code}")
+    except requests.exceptions.Timeout:
+        st.error("GitHub连接超时，请检查网络连接")
     except Exception as e:
-        st.error(f"加载数据错误: {str(e)}")
-        return {"results": []}
+        st.error(f"GitHub数据加载错误: {str(e)}")
+    
+    # 如果都失败了，返回空数据
+    st.session_state['data_source'] = "❌ 无法加载数据"
+    return {"results": []}
+
+def normalize_column_name(col_name):
+    """标准化列名，处理大小写和格式差异"""
+    column_mapping = {
+        'arc_challenge': 'ARC Challenge',
+        'arc challenge': 'ARC Challenge',
+        'arc_easy': 'ARC Easy', 
+        'arc easy': 'ARC Easy',
+        'boolq': 'BoolQ',
+        'fda': 'FDA',
+        'hellaswag': 'HellaSwag',
+        'lambada_openai': 'LAMBDA OpenAI',
+        'lambda openai': 'LAMBDA OpenAI',
+        'openbookqa': 'OpenBookQA',
+        'piqa': 'PIQA',
+        'social_iqa': 'Social IQA',
+        'social iqa': 'Social IQA',
+        'squad_completion': 'SQuAD Completion',
+        'squad completion': 'SQuAD Completion',
+        'swde': 'SWDE',
+        'winogrande': 'WinoGrande',
+        'average': 'Average'
+    }
+    
+    clean_name = col_name.strip().lower()
+    return column_mapping.get(clean_name, col_name.strip().title())
 
 def parse_test_results(test_string):
+    """解析测试结果，处理不同的格式"""
     if not test_string:
         return {}
     
+    # 清理字符串，处理\r\n
+    test_string = test_string.replace('\r\n', '\n').replace('\r', '\n')
     lines = test_string.strip().split('\n')
+    
     if len(lines) < 2:
         return {}
     
@@ -43,56 +168,177 @@ def parse_test_results(test_string):
         values = [v.strip() for v in lines[1].split(',')]
         
         result = {}
-        for header, value in zip(headers, values):
-            if header == 'Model':
+        
+        # 跳过第一列（模型名称）
+        for i, (header, value) in enumerate(zip(headers, values)):
+            if i == 0 or header.lower() in ['model', '']:
                 continue
+                
+            standard_header = normalize_column_name(header)
+            
             try:
-                result[header] = float(value)
+                numeric_value = float(value)
+                result[standard_header] = numeric_value
             except ValueError:
-                result[header] = value
+                result[standard_header] = value
+        
         return result
-    except:
+    except Exception as e:
+        print(f"解析测试结果时出错: {e}")
         return {}
 
 def get_min_loss(train_string):
+    """从训练数据中提取最低loss"""
     if not train_string:
         return None
     
+    train_string = train_string.replace('\r\n', '\n').replace('\r', '\n')
     lines = train_string.strip().split('\n')
+    
     if len(lines) < 2:
         return None
     
     try:
-        loss_values = []
-        parts = lines[1].split(',')[1:]  # 跳过第一个标签
+        loss_line = lines[1]
+        parts = loss_line.split(',')
         
-        for part in parts:
+        loss_values = []
+        for part in parts[1:]:  # 跳过第一个元素（标签）
             try:
                 loss_values.append(float(part.strip()))
             except ValueError:
                 continue
         
         return min(loss_values) if loss_values else None
-    except:
+    except Exception as e:
+        print(f"解析训练数据时出错: {e}")
         return None
 
+def create_styled_table(df):
+    """创建带样式的表格"""
+    
+    # 定义样式函数
+    def highlight_cells(data):
+        """高亮最优值和baseline行"""
+        styles = pd.DataFrame('', index=data.index, columns=data.columns)
+        
+        test_columns = [
+            'ARC Challenge', 'ARC Easy', 'BoolQ', 'FDA', 'HellaSwag', 
+            'LAMBDA OpenAI', 'OpenBookQA', 'PIQA', 'Social IQA', 
+            'SQuAD Completion', 'SWDE', 'WinoGrande', '测试集均值'
+        ]
+        
+        # 高亮最优值
+        for col in data.columns:
+            if col in test_columns:
+                # 测试指标：越高越好
+                numeric_series = pd.to_numeric(data[col], errors='coerce')
+                if not numeric_series.isna().all():
+                    max_idx = numeric_series.idxmax()
+                    styles.loc[max_idx, col] = 'background-color: #28a745; color: white; font-weight: bold; border-radius: 3px'
+            elif col == '最低Loss':
+                # Loss：越低越好
+                numeric_series = pd.to_numeric(data[col], errors='coerce')
+                if not numeric_series.isna().all():
+                    min_idx = numeric_series.idxmin()
+                    styles.loc[min_idx, col] = 'background-color: #28a745; color: white; font-weight: bold; border-radius: 3px'
+        
+        # 高亮baseline行
+        for idx in data.index:
+            model_name = str(data.loc[idx, '模型名称']).lower()
+            if model_name == 'delta_net':
+                for col in data.columns:
+                    if styles.loc[idx, col] == '':
+                        styles.loc[idx, col] = 'background-color: #fff3cd; border-left: 4px solid #ffc107; font-weight: bold'
+                    else:
+                        styles.loc[idx, col] += '; border-left: 4px solid #ffc107'
+        
+        return styles
+    
+    # 应用样式并格式化
+    styled_df = df.style.apply(highlight_cells, axis=None)
+    
+    # 格式化数值
+    format_dict = {}
+    for col in df.columns:
+        if col != '模型名称':
+            format_dict[col] = lambda x: f"{x:.4f}" if pd.notna(x) and isinstance(x, (int, float)) else ("N/A" if pd.isna(x) else str(x))
+    
+    styled_df = styled_df.format(format_dict)
+    
+    return styled_df
+
+def create_performance_summary(df):
+    """创建性能摘要"""
+    test_columns = [
+        'ARC Challenge', 'ARC Easy', 'BoolQ', 'FDA', 'HellaSwag', 
+        'LAMBDA OpenAI', 'OpenBookQA', 'PIQA', 'Social IQA', 
+        'SQuAD Completion', 'SWDE', 'WinoGrande', '测试集均值', '最低Loss'
+    ]
+    
+    summary_data = []
+    
+    for col in test_columns:
+        if col in df.columns:
+            numeric_series = pd.to_numeric(df[col], errors='coerce')
+            valid_data = numeric_series.dropna()
+            
+            if len(valid_data) > 0:
+                if col == '最低Loss':
+                    best_value = valid_data.min()
+                    best_idx = numeric_series.idxmin()
+                    direction = "↓"
+                else:
+                    best_value = valid_data.max()
+                    best_idx = numeric_series.idxmax()
+                    direction = "↑"
+                
+                best_model = df.loc[best_idx, '模型名称']
+                
+                summary_data.append({
+                    '指标': col,
+                    '最优值': f"{best_value:.4f}",
+                    '最优模型': best_model,
+                    '趋势': direction
+                })
+    
+    return pd.DataFrame(summary_data)
+
 def main():
-    st.title("📊 AI模型结果表格")
-    st.markdown("显示每个模型的最低loss、12个测试集结果和测试集均值")
+    # 页面标题
+    st.markdown('<h1 class="main-title">🏆 AI模型性能排行榜</h1>', unsafe_allow_html=True)
+    
+    # 数据源信息
+    data_source = st.session_state.get('data_source', '')
+    if data_source:
+        st.markdown(f'<div class="data-source">📊 数据源: {data_source}</div>', unsafe_allow_html=True)
+    
     st.markdown("---")
     
     # 加载数据
-    with st.spinner("正在加载数据..."):
-        cache = load_data_from_github()
+    with st.spinner("🔄 正在智能加载数据..."):
+        cache = load_data()
     
     results = cache.get("results", [])
     
     if not results:
         st.error("❌ 没有找到数据")
-        st.info("请先运行数据更新脚本: python update_cache.py")
+        
+        # 提供帮助信息
+        st.info("**数据加载指南:**")
+        st.markdown("""
+        **本地测试:**
+        1. 确保当前目录有 `cache.json` 文件
+        2. 运行: `python update_cache.py` 生成数据
+        
+        **远程部署:**
+        1. 推送 `cache.json` 到GitHub仓库
+        2. 应用会自动从GitHub加载数据
+        """)
+        
         return
     
-    # 创建表格数据
+    # 处理数据
     table_data = []
     
     for result in results:
@@ -103,12 +349,11 @@ def main():
         
         # 最低loss
         min_loss = get_min_loss(result.get('train', ''))
-        row['最低Loss'] = f"{min_loss:.4f}" if min_loss else 'N/A'
+        row['最低Loss'] = min_loss
         
         # 测试结果
         test_results = parse_test_results(result.get('test', ''))
         
-        # 12个测试集
         test_datasets = [
             'ARC Challenge', 'ARC Easy', 'BoolQ', 'FDA', 'HellaSwag', 
             'LAMBDA OpenAI', 'OpenBookQA', 'PIQA', 'Social IQA', 
@@ -119,19 +364,19 @@ def main():
         for dataset in test_datasets:
             if dataset in test_results:
                 value = test_results[dataset]
-                row[dataset] = f"{value:.3f}" if isinstance(value, (int, float)) else value
+                row[dataset] = value
                 if isinstance(value, (int, float)):
                     test_values.append(value)
             else:
-                row[dataset] = 'N/A'
+                row[dataset] = np.nan
         
         # 测试集均值
         if test_values:
-            row['测试集均值'] = f"{np.mean(test_values):.4f}"
+            row['测试集均值'] = np.mean(test_values)
         elif 'Average' in test_results:
-            row['测试集均值'] = f"{test_results['Average']:.4f}"
+            row['测试集均值'] = test_results['Average']
         else:
-            row['测试集均值'] = 'N/A'
+            row['测试集均值'] = np.nan
         
         table_data.append(row)
     
@@ -139,12 +384,29 @@ def main():
         st.error("没有可显示的数据")
         return
     
-    # 显示统计
-    col1, col2, col3 = st.columns(3)
+    df = pd.DataFrame(table_data)
+    
+    # 统计卡片
+    col1, col2, col3, col4 = st.columns(4)
+    
     with col1:
-        st.metric("🔢 模型总数", len(table_data))
+        st.markdown(f"""
+        <div class="metric-card">
+            <h3>🔢 模型总数</h3>
+            <h2>{len(table_data)}</h2>
+        </div>
+        """, unsafe_allow_html=True)
+    
     with col2:
-        st.metric("📊 记录数", len(results))
+        complete_count = sum(1 for _, row in df.iterrows() 
+                           if sum(pd.isna(row[col]) for col in ['ARC Challenge', 'ARC Easy', 'BoolQ'] if col in row) == 0)
+        st.markdown(f"""
+        <div class="metric-card">
+            <h3>✅ 完整数据</h3>
+            <h2>{complete_count}</h2>
+        </div>
+        """, unsafe_allow_html=True)
+    
     with col3:
         last_update = cache.get("last_update", "未知")
         if last_update != "未知":
@@ -152,21 +414,136 @@ def main():
                 last_update = datetime.fromisoformat(last_update).strftime('%m-%d %H:%M')
             except:
                 pass
-        st.metric("🕒 最后更新", last_update)
+        st.markdown(f"""
+        <div class="metric-card">
+            <h3>🕒 最后更新</h3>
+            <h2>{last_update}</h2>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col4:
+        baseline_perf = "N/A"
+        for _, row in df.iterrows():
+            if str(row['模型名称']).lower() == 'delta_net':
+                if '测试集均值' in row and pd.notna(row['测试集均值']):
+                    baseline_perf = f"{row['测试集均值']:.3f}"
+                break
+        st.markdown(f"""
+        <div class="metric-card">
+            <h3>🎯 Baseline</h3>
+            <h2>{baseline_perf}</h2>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # 说明
+    st.markdown("---")
+    st.markdown("""
+    <div class="legend">
+        <strong>📖 图例说明:</strong><br>
+        🟢 <strong>绿色高亮</strong>: 该列最优值 (测试指标越高越好，Loss越低越好)<br>
+        🟡 <strong>黄色背景 + 橙色左边框</strong>: delta_net (Baseline模型)<br>
+        📊 <strong>数据说明</strong>: 自动从本地或GitHub加载最新数据
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # 主表格
+    st.markdown("### 📊 模型性能详细对比表")
+    
+    # 侧边栏选项
+    with st.sidebar:
+        st.header("🎛️ 显示选项")
+        
+        # 排序选项
+        sort_options = ["模型名称", "最低Loss", "测试集均值"]
+        sort_by = st.selectbox("排序依据", sort_options, index=2)
+        sort_ascending = st.checkbox("升序排列", value=False)
+        
+        # 筛选选项
+        show_only_complete = st.checkbox("只显示完整数据", value=False)
+        
+        if st.button("🔄 重新加载数据"):
+            st.cache_data.clear()
+            st.experimental_rerun()
+    
+    # 应用筛选
+    display_df = df.copy()
+    
+    if show_only_complete:
+        # 筛选出完整数据的行
+        test_cols = ['ARC Challenge', 'ARC Easy', 'BoolQ', 'FDA', 'HellaSwag', 
+                    'LAMBDA OpenAI', 'OpenBookQA', 'PIQA', 'Social IQA', 
+                    'SQuAD Completion', 'SWDE', 'WinoGrande']
+        complete_mask = display_df[test_cols].notna().all(axis=1)
+        display_df = display_df[complete_mask]
+    
+    # 应用排序
+    if sort_by in display_df.columns:
+        if sort_by in ['最低Loss', '测试集均值']:
+            numeric_col = pd.to_numeric(display_df[sort_by], errors='coerce')
+            display_df = display_df.loc[numeric_col.sort_values(ascending=sort_ascending).index]
+        else:
+            display_df = display_df.sort_values(sort_by, ascending=sort_ascending)
     
     # 显示表格
-    df = pd.DataFrame(table_data)
-    st.subheader("📋 模型结果表格")
-    st.dataframe(df, use_container_width=True, hide_index=True)
-    
-    # 下载按钮
-    csv = df.to_csv(index=False).encode('utf-8')
-    st.download_button(
-        label="📥 下载CSV",
-        data=csv,
-        file_name=f'model_results_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv',
-        mime='text/csv'
+    st.dataframe(
+        display_df,
+        use_container_width=True,
+        height=min(600, len(display_df) * 45 + 100)
     )
+    
+    # 性能摘要
+    st.markdown("---")
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("### 🏆 各指标最优模型")
+        summary_df = create_performance_summary(df)
+        st.dataframe(summary_df, use_container_width=True, hide_index=True)
+    
+    with col2:
+        st.markdown("### 📈 Top 5 模型对比")
+        if '测试集均值' in df.columns:
+            chart_df = df.dropna(subset=['测试集均值']).nlargest(5, '测试集均值')
+            
+            if not chart_df.empty:
+                fig = px.bar(
+                    chart_df,
+                    x='测试集均值',
+                    y='模型名称',
+                    orientation='h',
+                    color='测试集均值',
+                    color_continuous_scale='viridis',
+                    title="测试集平均性能 Top 5"
+                )
+                fig.update_layout(
+                    height=300,
+                    showlegend=False,
+                    yaxis={'categoryorder': 'total ascending'}
+                )
+                st.plotly_chart(fig, use_container_width=True)
+    
+    # 下载功能
+    st.markdown("---")
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        csv_data = display_df.to_csv(index=False).encode('utf-8')
+        st.download_button(
+            label="📥 下载当前表格 (CSV)",
+            data=csv_data,
+            file_name=f'ai_model_results_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv',
+            mime='text/csv'
+        )
+    
+    with col2:
+        if st.button("📋 显示数据统计"):
+            st.info(f"""
+            **数据统计:**
+            - 总模型数: {len(df)}
+            - 显示模型数: {len(display_df)}
+            - 数据来源: {st.session_state.get('data_source', '未知')}
+            - 最后更新: {cache.get('last_update', '未知')}
+            """)
 
 if __name__ == "__main__":
     main()
