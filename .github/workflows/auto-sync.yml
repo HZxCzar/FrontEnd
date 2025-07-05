@@ -1,39 +1,46 @@
-name: 自动同步数据
+name: 🤖 自动数据同步
 
 on:
   schedule:
     - cron: '*/30 * * * *'  # 每30分钟运行一次
-  workflow_dispatch:  # 允许手动点击运行
+  workflow_dispatch:  # 允许手动触发
 
 jobs:
   sync-data:
     runs-on: ubuntu-latest
     
     steps:
-    - name: 下载代码
+    - name: 📥 检出代码
       uses: actions/checkout@v4
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
     
-    - name: 安装Python
+    - name: 🐍 设置Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.9'
     
-    - name: 安装依赖
+    - name: 📦 安装依赖
       run: pip install requests
     
-    - name: 运行数据更新
-      run: python update_cache.py
+    - name: 🔄 同步数据
+      run: |
+        echo "开始从API同步数据..."
+        python update_cache.py
+        echo "数据同步完成"
     
-    - name: 提交更新后的数据
+    - name: 📤 提交更新
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
-        git add cache.json
-        if git diff --staged --quiet; then
-          echo "没有新数据"
+        
+        # 检查是否有变化
+        if git diff --quiet cache.json; then
+          echo "📝 没有新数据需要更新"
         else
-          git commit -m "自动更新数据 $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+          echo "📊 发现数据更新，正在提交..."
+          git add cache.json
+          git commit -m "🤖 自动同步数据 $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
           git push
+          echo "✅ 数据已成功同步到GitHub"
         fi
