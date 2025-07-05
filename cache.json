@@ -1,5 +1,5 @@
 {
-  "total_records_at_last_run": 409,
+  "total_records_at_last_run": 411,
   "results": [
     {
       "index": 1,
@@ -3672,7 +3672,25 @@
       "train": ",1,100,200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,1500,1600,1700,1800,1900,2000\r\ndelta_net_gated_multiscale_token_selective,10.8753,10.4024,9.0929,7.7211,7.028,6.5992,6.2464,6.0712,5.8698,5.6987,5.509,5.353,5.2181,5.1528,4.9728,4.9157,4.9016,4.719,4.6716,4.6348,4.5712",
       "score": 1.9523193416426419,
       "timestamp": "2025-07-05T16:17:41.393484"
+    },
+    {
+      "index": 410,
+      "name": "delta_net_selm",
+      "parent": 364,
+      "test": ",arc_challenge,arc_easy,boolq,fda,hellaswag,lambada_openai,openbookqa,piqa,social_iqa,squad_completion,swde,winogrande\r\ndelta_net_selm,0.162,0.354,0.416,0.0,0.288,0.006,0.136,0.528,0.352,0.004,0.002,0.468",
+      "train": ",1,100,200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,1500,1600,1700,1800,1900,2000\r\ndelta_net_selm,10.8764,10.0833,8.7734,7.5431,6.8304,6.4602,6.1095,5.9302,5.7183,5.5529,5.3582,5.2042,5.0682,4.9973,4.8073,4.7429,4.7254,4.5401,4.4952,4.4573,4.4064",
+      "score": 2.1748231936870366,
+      "timestamp": "2025-07-05T16:44:40.386770"
+    },
+    {
+      "index": 411,
+      "name": "delta_net_hierarchical_multiscale_adaptive_decay_cascaded_dilation",
+      "parent": 224,
+      "test": ",arc_challenge,arc_easy,boolq,fda,hellaswag,lambada_openai,openbookqa,piqa,social_iqa,squad_completion,swde,winogrande\r\ndelta_net_hierarchical_multiscale_adaptive_decay_cascaded_dilation,0.176,0.332,0.422,0.0,0.286,0.0,0.144,0.538,0.352,0.002,0.014,0.504",
+      "train": ",1,100,200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,1500,1600,1700,1800,1900,2000\r\ndelta_net_hierarchical_multiscale_adaptive_decay_cascaded_dilation,10.8762,10.7761,9.2211,7.8146,7.0766,6.6019,6.2258,6.0389,5.8279,5.6523,5.4511,5.2948,5.1516,5.0877,4.8898,4.8092,4.7506,4.4909,4.349,4.2412,4.0748",
+      "score": 2.4259983107169143,
+      "timestamp": "2025-07-05T16:44:47.703509"
     }
   ],
-  "last_update": "2025-07-05T16:17:41.393501"
+  "last_update": "2025-07-05T16:44:47.703525"
 }
