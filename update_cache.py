@@ -33,7 +33,7 @@ def get_total_records():
 
 def fetch_element(index):
     try:
-        response = requests.get(f"{API_BASE_URL}/elements/by-index/{index}", timeout=30)
+        response = requests.get(f"{API_BASE_URL}/elements/with-score/by-index/{index}", timeout=30)
         if response.status_code == 200:
             return response.json()
     except Exception as e:
@@ -62,6 +62,7 @@ def main():
     # 获取新数据
     new_count = 0
     for i in range(last_total + 1, current_total + 1):
+    # for i in range(185,186):
         print(f"获取索引 {i}...")
         data = fetch_element(i)
         
@@ -72,6 +73,7 @@ def main():
                 "parent": data.get('parent'),
                 "test": data['result'].get('test', ''),
                 "train": data['result'].get('train', ''),
+                "score": data.get('score'),
                 "timestamp": datetime.now().isoformat()
             }
             results.append(entry)
