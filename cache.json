@@ -1,5 +1,5 @@
 {
-  "total_records_at_last_run": 411,
+  "total_records_at_last_run": 415,
   "results": [
     {
       "index": 1,
@@ -3690,7 +3690,43 @@
       "train": ",1,100,200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,1500,1600,1700,1800,1900,2000\r\ndelta_net_hierarchical_multiscale_adaptive_decay_cascaded_dilation,10.8762,10.7761,9.2211,7.8146,7.0766,6.6019,6.2258,6.0389,5.8279,5.6523,5.4511,5.2948,5.1516,5.0877,4.8898,4.8092,4.7506,4.4909,4.349,4.2412,4.0748",
       "score": 2.4259983107169143,
       "timestamp": "2025-07-05T16:44:47.703509"
+    },
+    {
+      "index": 412,
+      "name": "delta_net_ahm_dr",
+      "parent": 224,
+      "test": ",arc_challenge,arc_easy,boolq,fda,hellaswag,lambada_openai,openbookqa,piqa,social_iqa,squad_completion,swde,winogrande\r\ndelta_net_ahm_dr,0.158,0.33,0.366,0.0,0.304,0.004,0.128,0.526,0.354,0.002,0.012,0.494",
+      "train": ",1,100,200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,1500,1600,1700,1800,1900,2000\r\ndelta_net_ahm_dr,10.8765,10.066,8.8712,7.5208,6.7501,6.399,6.056,5.8984,5.6965,5.5294,5.3345,5.1921,5.0635,5.0124,4.8337,4.7762,4.7698,4.5963,4.5585,4.5269,4.483",
+      "score": 1.7196717846197935,
+      "timestamp": "2025-07-05T17:12:29.521744"
+    },
+    {
+      "index": 413,
+      "name": "delta_net_prob_hybrid_softmax_gate",
+      "parent": 358,
+      "test": ",arc_challenge,arc_easy,boolq,fda,hellaswag,lambada_openai,openbookqa,piqa,social_iqa,squad_completion,swde,winogrande\r\ndelta_net_prob_hybrid_softmax_gate,0.166,0.354,0.4,0.002,0.298,0.008,0.134,0.55,0.37,0.004,0.006,0.464",
+      "train": ",1,100,200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,1500,1600,1700,1800,1900,2000\r\ndelta_net_prob_hybrid_softmax_gate,10.8728,10.0782,8.7661,7.546,6.8433,6.4677,6.1166,5.9371,5.7187,5.5581,5.3617,5.2152,5.0812,5.0191,4.8359,4.7735,4.7543,4.5799,4.5265,4.4921,4.4443",
+      "score": 2.373145377923569,
+      "timestamp": "2025-07-05T17:12:38.802974"
+    },
+    {
+      "index": 414,
+      "name": "delta_net_stochastic_ensemble_decoder",
+      "parent": 335,
+      "test": ",arc_challenge,arc_easy,boolq,fda,hellaswag,lambada_openai,openbookqa,piqa,social_iqa,squad_completion,swde,winogrande\r\ndelta_net_stochastic_ensemble_decoder,0.166,0.332,0.412,0.0,0.29,0.0,0.126,0.55,0.362,0.006,0.006,0.47",
+      "train": ",1,100,200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,1500,1600,1700,1800,1900,2000\r\ndelta_net_stochastic_ensemble_decoder,10.8672,10.0522,8.8176,7.6601,7.1491,6.8117,6.4253,6.2032,5.9892,5.818,5.6286,5.4873,5.3652,5.3302,5.1673,5.1331,5.1415,4.9769,4.9396,4.9313,4.867",
+      "score": 1.075939339885539,
+      "timestamp": "2025-07-05T17:12:47.489748"
+    },
+    {
+      "index": 415,
+      "name": "delta_net_msi_hycon",
+      "parent": 119,
+      "test": ",arc_challenge,arc_easy,boolq,fda,hellaswag,lambada_openai,openbookqa,piqa,social_iqa,squad_completion,swde,winogrande\r\ndelta_net_msi_hycon,0.168,0.34,0.372,0.002,0.294,0.002,0.132,0.538,0.364,0.004,0.026,0.512",
+      "train": ",1,100,200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,1500,1600,1700,1800,1900,2000\r\ndelta_net_msi_hycon,10.8755,9.9211,8.6455,7.3806,6.6376,6.2904,5.9567,5.8046,5.5993,5.4458,5.2578,5.1262,5.0044,4.9625,4.7891,4.7384,4.7361,4.5676,4.5274,4.4961,4.4554",
+      "score": 2.2577852919517634,
+      "timestamp": "2025-07-05T17:12:55.286386"
     }
   ],
-  "last_update": "2025-07-05T16:44:47.703525"
+  "last_update": "2025-07-05T17:12:55.286402"
 }
