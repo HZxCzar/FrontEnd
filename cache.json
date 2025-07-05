@@ -1,5 +1,5 @@
 {
-  "total_records_at_last_run": 424,
+  "total_records_at_last_run": 440,
   "results": [
     {
       "index": 1,
@@ -3807,7 +3807,151 @@
       "train": ",1,100,200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,1500,1600,1700,1800,1900,2000\r\ndelta_net_hsm,10.8842,10.2073,8.9229,7.5826,6.8633,6.5796,6.2959,6.159,5.9899,5.8347,5.643,5.5004,5.3669,5.3196,5.1472,5.108,5.1181,4.9598,4.9127,4.8853,4.8416",
       "score": 1.4335767714958179,
       "timestamp": "2025-07-05T18:18:06.291782"
+    },
+    {
+      "index": 425,
+      "name": "delta_net_dynamic_convex_router",
+      "parent": 358,
+      "test": ",arc_challenge,arc_easy,boolq,fda,hellaswag,lambada_openai,openbookqa,piqa,social_iqa,squad_completion,swde,winogrande\r\ndelta_net_dynamic_convex_router,0.158,0.378,0.462,0.0,0.302,0.006,0.128,0.57,0.348,0.006,0.006,0.456",
+      "train": ",1,100,200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,1500,1600,1700,1800,1900,2000\r\ndelta_net_dynamic_convex_router,10.8753,10.0564,8.7428,7.5198,6.8197,6.4604,6.1048,5.9237,5.7035,5.5466,5.3519,5.2025,5.0691,5.0063,4.8265,4.7649,4.7513,4.5712,4.5216,4.4928,4.4421",
+      "score": 2.4011559077364497,
+      "timestamp": "2025-07-05T18:44:33.643621"
+    },
+    {
+      "index": 426,
+      "name": "delta_net_hierarchical_causal_wavelet",
+      "parent": 335,
+      "test": ",arc_challenge,arc_easy,boolq,fda,hellaswag,lambada_openai,openbookqa,piqa,social_iqa,squad_completion,swde,winogrande\r\ndelta_net_hierarchical_causal_wavelet,0.16,0.342,0.468,0.0,0.288,0.0,0.128,0.544,0.356,0.004,0.004,0.51",
+      "train": ",1,100,200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,1500,1600,1700,1800,1900,2000\r\ndelta_net_hierarchical_causal_wavelet,10.8705,10.0359,8.7595,7.5712,6.9138,6.5466,6.1952,6.0313,5.8286,5.6743,5.4905,5.3565,5.2419,5.2021,5.039,5.0047,5.0119,4.8553,4.8145,4.7967,4.7427",
+      "score": 1.5022004473707677,
+      "timestamp": "2025-07-05T18:44:44.157559"
+    },
+    {
+      "index": 427,
+      "name": "delta_net_dymsgm",
+      "parent": 364,
+      "test": ",arc_challenge,arc_easy,boolq,fda,hellaswag,lambada_openai,openbookqa,piqa,social_iqa,squad_completion,swde,winogrande\r\ndelta_net_dymsgm,0.168,0.352,0.412,0.002,0.302,0.008,0.128,0.534,0.364,0.01,0.004,0.506",
+      "train": ",1,100,200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,1500,1600,1700,1800,1900,2000\r\ndelta_net_dymsgm,10.878,10.0473,8.733,7.5301,6.8449,6.4782,6.1154,5.9352,5.7153,5.5351,5.3389,5.1743,5.0295,4.954,4.7659,4.7005,4.6867,4.5034,4.4584,4.4242,4.3742",
+      "score": 2.4343636732297074,
+      "timestamp": "2025-07-05T18:44:53.074062"
+    },
+    {
+      "index": 428,
+      "name": "delta_net_dmfcsag",
+      "parent": 364,
+      "test": ",arc_challenge,arc_easy,boolq,fda,hellaswag,lambada_openai,openbookqa,piqa,social_iqa,squad_completion,swde,winogrande\r\ndelta_net_dmfcsag,0.164,0.372,0.412,0.002,0.296,0.014,0.124,0.534,0.338,0.008,0.002,0.504",
+      "train": ",1,100,200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,1500,1600,1700,1800,1900,2000\r\ndelta_net_dmfcsag,10.8758,10.0658,8.7561,7.5431,6.8236,6.4376,6.0789,5.8959,5.6739,5.5,5.2916,5.1288,4.9871,4.9126,4.7229,4.6596,4.6442,4.4659,4.4277,4.3934,4.3507",
+      "score": 2.4838933391106006,
+      "timestamp": "2025-07-05T18:45:01.814370"
+    },
+    {
+      "index": 429,
+      "name": "delta_net_ca_mem",
+      "parent": 304,
+      "test": ",arc_challenge,arc_easy,boolq,fda,hellaswag,lambada_openai,openbookqa,piqa,social_iqa,squad_completion,swde,winogrande\r\ndelta_net_ca_mem,0.16,0.318,0.532,0.002,0.284,0.0,0.128,0.526,0.344,0.002,0.002,0.444",
+      "train": ",1,100,200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,1500,1600,1700,1800,1900,2000\r\ndelta_net_ca_mem,10.8791,10.0465,8.7466,7.5329,6.8612,6.4889,6.147,5.9869,5.7927,5.6365,5.4625,5.3307,5.2128,5.1891,5.0313,5.0023,5.0182,4.8666,4.8297,4.8107,4.7678",
+      "score": 1.4239145102205115,
+      "timestamp": "2025-07-05T18:45:11.851237"
+    },
+    {
+      "index": 430,
+      "name": "delta_net_dmtg",
+      "parent": 333,
+      "test": ",arc_challenge,arc_easy,boolq,fda,hellaswag,lambada_openai,openbookqa,piqa,social_iqa,squad_completion,swde,winogrande\r\ndelta_net_dmtg,0.17,0.33,0.412,0.0,0.28,0.006,0.122,0.552,0.352,0.0,0.004,0.462",
+      "train": ",1,100,200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,1500,1600,1700,1800,1900,2000\r\ndelta_net_dmtg,10.8752,10.2669,8.9668,7.6751,6.9685,6.5713,6.2222,6.051,5.8499,5.6826,5.4965,5.3426,5.2065,5.1441,4.9622,4.8966,4.8817,4.6967,4.6483,4.6091,4.5477",
+      "score": 1.6386118939122838,
+      "timestamp": "2025-07-05T18:45:22.197541"
+    },
+    {
+      "index": 431,
+      "name": "delta_net_multiscale_adaptivemix",
+      "parent": 270,
+      "test": ",arc_challenge,arc_easy,boolq,fda,hellaswag,lambada_openai,openbookqa,piqa,social_iqa,squad_completion,swde,winogrande\r\ndelta_net_multiscale_adaptivemix,0.188,0.334,0.424,0.0,0.286,0.004,0.146,0.534,0.364,0.002,0.008,0.502",
+      "train": ",1,100,200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,1500,1600,1700,1800,1900,2000\r\ndelta_net_multiscale_adaptivemix,10.8757,10.2772,8.9791,7.6792,6.9567,6.5726,6.2169,6.0436,5.8541,5.6852,5.4926,5.3387,5.2009,5.1455,4.9613,4.8987,4.8831,4.6984,4.6479,4.6071,4.5462",
+      "score": 1.9539557009975514,
+      "timestamp": "2025-07-05T18:45:29.868454"
+    },
+    {
+      "index": 432,
+      "name": "delta_net_ms_arg",
+      "parent": 270,
+      "test": ",arc_challenge,arc_easy,boolq,fda,hellaswag,lambada_openai,openbookqa,piqa,social_iqa,squad_completion,swde,winogrande\r\ndelta_net_ms_arg,0.16,0.342,0.382,0.002,0.288,0.002,0.128,0.55,0.354,0.002,0.012,0.51",
+      "train": ",1,100,200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,1500,1600,1700,1800,1900,2000\r\ndelta_net_ms_arg,10.874,10.0792,8.7736,7.5445,6.876,6.5174,6.1677,6.0101,5.803,5.6491,5.4523,5.3067,5.1656,5.1016,4.9189,4.856,4.8382,4.6565,4.6068,4.5723,4.514",
+      "score": 1.9730632357352544,
+      "timestamp": "2025-07-05T18:45:36.770688"
+    },
+    {
+      "index": 433,
+      "name": "delta_net_mshmf",
+      "parent": 364,
+      "test": ",arc_challenge,arc_easy,boolq,fda,hellaswag,lambada_openai,openbookqa,piqa,social_iqa,squad_completion,swde,winogrande\r\ndelta_net_mshmf,0.176,0.346,0.434,0.002,0.296,0.012,0.138,0.542,0.362,0.008,0.0,0.478",
+      "train": ",1,100,200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,1500,1600,1700,1800,1900,2000\r\ndelta_net_mshmf,10.8808,10.0665,8.7544,7.5338,6.8287,6.4535,6.0974,5.9302,5.715,5.5457,5.3442,5.1805,5.0344,4.9593,4.7692,4.6969,4.6774,4.4937,4.4468,4.4101,4.3657",
+      "score": 2.5204955849474495,
+      "timestamp": "2025-07-05T18:45:46.271244"
+    },
+    {
+      "index": 434,
+      "name": "delta_net_ms_fir_gmix",
+      "parent": 364,
+      "test": ",arc_challenge,arc_easy,boolq,fda,hellaswag,lambada_openai,openbookqa,piqa,social_iqa,squad_completion,swde,winogrande\r\ndelta_net_ms_fir_gmix,0.152,0.362,0.468,0.002,0.288,0.008,0.132,0.532,0.352,0.01,0.002,0.496",
+      "train": ",1,100,200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,1500,1600,1700,1800,1900,2000\r\ndelta_net_ms_fir_gmix,10.8755,10.0685,8.7592,7.5298,6.8262,6.4618,6.1114,5.9412,5.7177,5.5408,5.3361,5.1736,5.0259,4.9604,4.7718,4.7117,4.6962,4.5177,4.4707,4.4375,4.3877",
+      "score": 2.5178632373362944,
+      "timestamp": "2025-07-05T18:45:57.738128"
+    },
+    {
+      "index": 435,
+      "name": "delta_net_multiscale_conv_gated",
+      "parent": 364,
+      "test": ",arc_challenge,arc_easy,boolq,fda,hellaswag,lambada_openai,openbookqa,piqa,social_iqa,squad_completion,swde,winogrande\r\ndelta_net_multiscale_conv_gated,0.178,0.352,0.392,0.002,0.298,0.014,0.13,0.55,0.344,0.006,0.006,0.474",
+      "train": ",1,100,200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,1500,1600,1700,1800,1900,2000\r\ndelta_net_multiscale_conv_gated,10.8751,10.0739,8.7712,7.5447,6.8233,6.4466,6.0936,5.9085,5.685,5.5072,5.2975,5.1326,4.9924,4.9297,4.7341,4.6729,4.6591,4.4794,4.4353,4.403,4.3528",
+      "score": 2.3279154336355576,
+      "timestamp": "2025-07-05T18:46:10.627857"
+    },
+    {
+      "index": 436,
+      "name": "delta_net_multirate_token_decay",
+      "parent": 333,
+      "test": ",arc_challenge,arc_easy,boolq,fda,hellaswag,lambada_openai,openbookqa,piqa,social_iqa,squad_completion,swde,winogrande\r\ndelta_net_multirate_token_decay,0.164,0.334,0.368,0.002,0.294,0.006,0.124,0.548,0.336,0.004,0.002,0.498",
+      "train": ",1,100,200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,1500,1600,1700,1800,1900,2000\r\ndelta_net_multirate_token_decay,10.8782,10.0961,8.7648,7.5472,6.8558,6.4896,6.1239,5.9453,5.7299,5.5673,5.3816,5.221,5.0903,5.0273,4.8523,4.7948,4.7795,4.6054,4.5591,4.533,4.4756",
+      "score": 1.847472286395864,
+      "timestamp": "2025-07-05T18:46:21.435713"
+    },
+    {
+      "index": 437,
+      "name": "delta_net_dual_path_fusion",
+      "parent": 268,
+      "test": ",arc_challenge,arc_easy,boolq,fda,hellaswag,lambada_openai,openbookqa,piqa,social_iqa,squad_completion,swde,winogrande\r\ndelta_net_dual_path_fusion,0.176,0.336,0.486,0.0,0.292,0.002,0.13,0.534,0.342,0.004,0.002,0.486",
+      "train": ",1,100,200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,1500,1600,1700,1800,1900,2000\r\ndelta_net_dual_path_fusion,10.8717,10.0308,8.7289,7.5259,6.8465,6.4908,6.1449,5.9702,5.7651,5.6046,5.4187,5.2669,5.1395,5.0767,4.8994,4.8389,4.8292,4.6453,4.599,4.5615,4.504",
+      "score": 2.2242441448094716,
+      "timestamp": "2025-07-05T18:46:30.997773"
+    },
+    {
+      "index": 438,
+      "name": "delta_net_decoupled_fusion_learnable_alpha",
+      "parent": 370,
+      "test": ",arc_challenge,arc_easy,boolq,fda,hellaswag,lambada_openai,openbookqa,piqa,social_iqa,squad_completion,swde,winogrande\r\ndelta_net_decoupled_fusion_learnable_alpha,0.166,0.364,0.43,0.0,0.304,0.008,0.14,0.568,0.35,0.004,0.008,0.496",
+      "train": ",1,100,200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,1500,1600,1700,1800,1900,2000\r\ndelta_net_decoupled_fusion_learnable_alpha,10.8772,10.3854,9.0567,7.682,6.9356,6.5044,6.1272,5.9366,5.7105,5.5397,5.3309,5.1684,5.0286,4.9609,4.7803,4.7182,4.7123,4.528,4.4875,4.4531,4.4053",
+      "score": 2.5463467417918766,
+      "timestamp": "2025-07-05T18:46:42.124772"
+    },
+    {
+      "index": 439,
+      "name": "delta_net_mscf",
+      "parent": 268,
+      "test": ",arc_challenge,arc_easy,boolq,fda,hellaswag,lambada_openai,openbookqa,piqa,social_iqa,squad_completion,swde,winogrande\r\ndelta_net_mscf,0.166,0.348,0.46,0.0,0.294,0.008,0.122,0.564,0.346,0.0,0.004,0.456",
+      "train": ",1,100,200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,1500,1600,1700,1800,1900,2000\r\ndelta_net_mscf,10.8743,10.1704,8.8425,7.5775,6.8518,6.4719,6.1084,5.9376,5.7238,5.5564,5.3527,5.1979,5.0718,5.005,4.8286,4.7586,4.748,4.5635,4.5142,4.4783,4.4238",
+      "score": 2.3409519566664394,
+      "timestamp": "2025-07-05T18:46:50.721100"
+    },
+    {
+      "index": 440,
+      "name": "delta_net_three_way_decay_gate",
+      "parent": 333,
+      "test": ",arc_challenge,arc_easy,boolq,fda,hellaswag,lambada_openai,openbookqa,piqa,social_iqa,squad_completion,swde,winogrande\r\ndelta_net_three_way_decay_gate,0.162,0.344,0.384,0.0,0.29,0.006,0.122,0.542,0.344,0.004,0.002,0.484",
+      "train": ",1,100,200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,1500,1600,1700,1800,1900,2000\r\ndelta_net_three_way_decay_gate,10.8783,10.084,8.7607,7.5469,6.8539,6.4834,6.1276,5.9469,5.7318,5.5646,5.3748,5.2206,5.0841,5.033,4.8522,4.7969,4.783,4.6091,4.5642,4.5311,4.4754",
+      "score": 1.9367971427834059,
+      "timestamp": "2025-07-05T18:47:02.310173"
     }
   ],
-  "last_update": "2025-07-05T18:18:06.291798"
+  "last_update": "2025-07-05T18:47:02.310189"
 }
