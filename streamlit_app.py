@@ -381,9 +381,12 @@ def main():
     for result in results:
         if not result.get('name'):
             continue
-            
+        
+        # Index
+        row = {'Index': result['index']}
+        
         # 按照要求的列顺序：名字、Score、Loss(2000步)、测试集均值、各个benchmark
-        row = {'模型名称': result['name']}
+        row['模型名称'] = result['name']
         
         # Score（新增字段）
         score = result.get('score')
@@ -581,7 +584,8 @@ def main():
     st.dataframe(
         display_df,
         use_container_width=True,
-        height=min(700, len(display_df) * 45 + 100)
+        height=min(700, len(display_df) * 45 + 100),
+        hide_index=True
     )
     
     # 性能摘要和图表
