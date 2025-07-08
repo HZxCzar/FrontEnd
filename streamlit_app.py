@@ -469,6 +469,11 @@ def render_database_page(db_key):
     
     df = pd.DataFrame(final_table_data)
     
+    # 调试：打印前几行数据确认gated_delta_net是否存在
+    if len(df) > 0:
+        print("前3行数据:")
+        print(df.head(3)['模型名称'].tolist())
+    
     # 统计卡片
     col1, col2, col3, col4, col5 = st.columns(5)
     card_class = "metric-card-db2" if is_db2 else "metric-card"
@@ -561,8 +566,6 @@ def render_database_page(db_key):
         sort_by = st.selectbox("排序依据", sort_options, index=1, key=f"sort_{db_key}")
         sort_ascending = st.checkbox("升序排列", value=False, key=f"asc_{db_key}")
         
-        st.info("📌 注意：gated_delta_net和delta_net始终固定在前两行")
-        
         # 筛选选项
         show_only_complete = st.checkbox("只显示完整数据", value=False, key=f"complete_{db_key}")
         
@@ -589,31 +592,28 @@ def render_database_page(db_key):
             st.cache_data.clear()
             st.rerun()
     
-    # 应用筛选
+    # 应用筛选 - 但要确保gated_delta_net和delta_net不被筛选掉
     display_df = df.copy()
+    
+    # 先分离特殊模型
+    gated_row = display_df[display_df['模型名称'].str.lower() == 'gated_delta_net']
+    delta_row = display_df[display_df['模型名称'].str.lower() == 'delta_net']
+    other_rows = display_df[~display_df['模型名称'].str.lower().isin(['gated_delta_net', 'delta_net'])]
     
     if show_only_complete:
         benchmark_cols = ['ARC Challenge', 'ARC Easy', 'BoolQ', 'FDA', 'HellaSwag', 
                          'LAMBDA OpenAI', 'OpenBookQA', 'PIQA', 'Social IQA', 
                          'SQuAD Completion', 'SWDE', 'WinoGrande']
-        complete_mask = display_df[benchmark_cols].notna().all(axis=1)
-        display_df = display_df[complete_mask]
+        complete_mask = other_rows[benchmark_cols].notna().all(axis=1)
+        other_rows = other_rows[complete_mask]
     
-    # Score范围筛选
-    if score_range and 'Score' in display_df.columns:
-        score_series = pd.to_numeric(display_df['Score'], errors='coerce')
+    # Score范围筛选（只应用于其他模型）
+    if score_range and 'Score' in other_rows.columns:
+        score_series = pd.to_numeric(other_rows['Score'], errors='coerce')
         score_mask = (score_series >= score_range[0]) & (score_series <= score_range[1])
-        display_df = display_df[score_mask]
+        other_rows = other_rows[score_mask]
     
     # 应用排序，但保持gated_delta_net和delta_net在前两行
-    # 分离特殊模型和普通模型
-    gated_mask = display_df['模型名称'].str.lower() == 'gated_delta_net'
-    delta_mask = display_df['模型名称'].str.lower() == 'delta_net'
-    
-    gated_rows = display_df[gated_mask]
-    delta_rows = display_df[delta_mask]
-    other_rows = display_df[~(gated_mask | delta_mask)]
-    
     # 对其他模型应用排序
     if sort_by in other_rows.columns and len(other_rows) > 0:
         if sort_by in ['Score', 'Loss', '测试集均值']:
@@ -623,7 +623,12 @@ def render_database_page(db_key):
             other_rows = other_rows.sort_values(sort_by, ascending=sort_ascending)
     
     # 重新组合：gated_delta_net -> delta_net -> 其他模型
-    display_df = pd.concat([gated_rows, delta_rows, other_rows], ignore_index=True)
+    display_df = pd.concat([gated_row, delta_row, other_rows], ignore_index=True)
+    
+    # 调试：打印最终显示的前几行
+    if len(display_df) > 0:
+        print("最终显示的前3行:")
+        print(display_df.head(3)['模型名称'].tolist())
     
     # 高亮函数
     def highlight_cells(data):
@@ -770,13 +775,13 @@ def main():
     col1, col2 = st.columns(2)
     
     with col1:
-        if st.button("🏆 数据库1 (45.78.231.212)", 
+        if st.button("🏆 数据库1 ", 
                     use_container_width=True,
                     type="primary" if st.session_state.current_page == "database1" else "secondary"):
             st.session_state.current_page = "database1"
     
     with col2:
-        if st.button("🔥 数据库2 (10.252.176.14)", 
+        if st.button("🔥 数据库2 ", 
                     use_container_width=True,
                     type="primary" if st.session_state.current_page == "database2" else "secondary"):
             st.session_state.current_page = "database2"
