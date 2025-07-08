@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """
-更新版AI模型结果表格展示
-新增Score列，重新调整列顺序：
-1. 模型名称 2. Score 3. Loss(2000步) 4. 测试集均值 5. 各个benchmark
+多数据库AI模型结果表格展示
+支持两个数据库：
+1. 数据库1: http://45.78.231.212:8001
+2. 数据库2: http://10.252.176.14:8001
 """
 
 import streamlit as st
@@ -64,12 +65,37 @@ st.markdown("""
         transform: translateY(-5px);
     }
     
+    /* 第二个数据库的卡片样式 */
+    .metric-card-db2 {
+        background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+        padding: 20px;
+        border-radius: 15px;
+        color: white;
+        text-align: center;
+        box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+        margin: 10px 0;
+        transition: transform 0.3s ease;
+    }
+    
+    .metric-card-db2:hover {
+        transform: translateY(-5px);
+    }
+    
     /* 数据源信息 */
     .data-source {
         background-color: #e7f3ff;
         padding: 10px;
         border-radius: 5px;
         border-left: 4px solid #007bff;
+        margin: 10px 0;
+        font-size: 0.9rem;
+    }
+    
+    .data-source-db2 {
+        background-color: #ffe7e7;
+        padding: 10px;
+        border-radius: 5px;
+        border-left: 4px solid #ff6b6b;
         margin: 10px 0;
         font-size: 0.9rem;
     }
@@ -83,46 +109,84 @@ st.markdown("""
         margin: 15px 0;
     }
     
-    /* 列标题样式 */
-    .column-header {
+    .legend-db2 {
+        background-color: #fff5f5;
+        padding: 15px;
+        border-radius: 10px;
+        border-left: 5px solid #ff6b6b;
+        margin: 15px 0;
+    }
+    
+    /* 页面切换按钮 */
+    .page-nav {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        margin: 20px 0;
+    }
+    
+    .page-button {
+        padding: 10px 20px;
+        border-radius: 25px;
+        border: none;
         font-weight: bold;
-        text-align: center;
-        background-color: #f8f9fa;
-        padding: 8px;
-        border-radius: 5px;
-        margin: 5px 0;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .page-button-active {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+    
+    .page-button-inactive {
+        background: #f8f9fa;
+        color: #666;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# 数据源配置
-LOCAL_CACHE_FILE = "cache.json"
-GITHUB_RAW_URL = "https://raw.githubusercontent.com/HZxCzar/FrontEnd/main/cache.json"
+# 数据库配置
+DB_CONFIGS = {
+    "database1": {
+        "name": "数据库1",
+        "cache_file": "cache_db1.json",
+        "github_url": "https://raw.githubusercontent.com/HZxCzar/FrontEnd/main/cache.json",
+        "api_url": "http://45.78.231.212:8001",
+        "color_scheme": "blue"
+    },
+    "database2": {
+        "name": "数据库2", 
+        "cache_file": "cache_db2.json",
+        "github_url": "https://raw.githubusercontent.com/HZxCzar/FrontEnd/main/cache_db2.json",
+        "api_url": "http://10.252.176.14:8001",
+        "color_scheme": "red"
+    }
+}
 
 @st.cache_data(ttl=300)
-def load_data():
+def load_data(db_key):
     """智能加载数据：优先本地，后备远程"""
+    config = DB_CONFIGS[db_key]
     data_source = ""
     
     # 首先尝试加载本地文件
-    if os.path.exists(LOCAL_CACHE_FILE):
+    if os.path.exists(config["cache_file"]):
         try:
-            with open(LOCAL_CACHE_FILE, 'r', encoding='utf-8') as f:
+            with open(config["cache_file"], 'r', encoding='utf-8') as f:
                 data = json.load(f)
-                data_source = f"📁 本地文件: {LOCAL_CACHE_FILE}"
-                st.session_state['data_source'] = data_source
-                return data
+                data_source = f"📁 本地文件: {config['cache_file']}"
+                return data, data_source
         except Exception as e:
             st.warning(f"读取本地文件失败: {e}")
     
     # 如果本地文件不存在，尝试从GitHub加载
     try:
-        response = requests.get(GITHUB_RAW_URL, timeout=10)
+        response = requests.get(config["github_url"], timeout=10)
         if response.status_code == 200:
             data = response.json()
-            data_source = f"🌐 远程GitHub: {GITHUB_RAW_URL}"
-            st.session_state['data_source'] = data_source
-            return data
+            data_source = f"🌐 远程GitHub: {config['github_url']}"
+            return data, data_source
         else:
             st.error(f"GitHub数据加载失败，状态码: {response.status_code}")
     except requests.exceptions.Timeout:
@@ -130,8 +194,8 @@ def load_data():
     except Exception as e:
         st.error(f"GitHub数据加载错误: {str(e)}")
     
-    st.session_state['data_source'] = "❌ 无法加载数据"
-    return {"results": []}
+    data_source = "❌ 无法加载数据"
+    return {"results": []}, data_source
 
 def normalize_column_name(col_name):
     """标准化列名，处理大小写和格式差异"""
@@ -227,79 +291,6 @@ def get_loss_at_step_2000(train_string):
         print(f"解析训练数据时出错: {e}")
         return None
 
-def create_styled_table(df):
-    """创建带样式的表格，突出显示最优值"""
-    
-    def highlight_cells(data):
-        """高亮最优值和baseline行"""
-        styles = pd.DataFrame('', index=data.index, columns=data.columns)
-        
-        # 定义需要高亮的列
-        score_column = 'Score'
-        loss_column = 'Loss'
-        avg_column = '测试集均值'
-        benchmark_columns = [
-            'ARC Challenge', 'ARC Easy', 'BoolQ', 'FDA', 'HellaSwag', 
-            'LAMBDA OpenAI', 'OpenBookQA', 'PIQA', 'Social IQA', 
-            'SQuAD Completion', 'SWDE', 'WinoGrande'
-        ]
-        
-        # 高亮Score最高值
-        if score_column in data.columns:
-            numeric_series = pd.to_numeric(data[score_column], errors='coerce')
-            if not numeric_series.isna().all():
-                max_idx = numeric_series.idxmax()
-                styles.loc[max_idx, score_column] = 'background-color: #28a745; color: white; font-weight: bold; border-radius: 3px'
-        
-        # 高亮Loss最低值  
-        if loss_column in data.columns:
-            numeric_series = pd.to_numeric(data[loss_column], errors='coerce')
-            if not numeric_series.isna().all():
-                min_idx = numeric_series.idxmin()
-                styles.loc[min_idx, loss_column] = 'background-color: #28a745; color: white; font-weight: bold; border-radius: 3px'
-        
-        # 高亮测试集均值最高值
-        if avg_column in data.columns:
-            numeric_series = pd.to_numeric(data[avg_column], errors='coerce')
-            if not numeric_series.isna().all():
-                max_idx = numeric_series.idxmax()
-                styles.loc[max_idx, avg_column] = 'background-color: #28a745; color: white; font-weight: bold; border-radius: 3px'
-        
-        # 高亮各个benchmark的最优值
-        for col in benchmark_columns:
-            if col in data.columns:
-                numeric_series = pd.to_numeric(data[col], errors='coerce')
-                if not numeric_series.isna().all():
-                    max_idx = numeric_series.idxmax()
-                    styles.loc[max_idx, col] = 'background-color: #28a745; color: white; font-weight: bold; border-radius: 3px'
-        
-        # 高亮baseline行（delta_net）
-        for idx in data.index:
-            model_name = str(data.loc[idx, '模型名称']).lower()
-            if model_name == 'delta_net':
-                for col in data.columns:
-                    if styles.loc[idx, col] == '':
-                        styles.loc[idx, col] = 'background-color: #fff3cd; border-left: 4px solid #ffc107; font-weight: bold'
-                    else:
-                        styles.loc[idx, col] += '; border-left: 4px solid #ffc107'
-        
-        return styles
-    
-    # 应用样式并格式化
-    styled_df = df.style.apply(highlight_cells, axis=None)
-    
-    # 格式化数值显示
-    format_dict = {}
-    for col in df.columns:
-        if col != '模型名称':
-            if col == 'Score':
-                format_dict[col] = lambda x: f"{x:.6f}" if pd.notna(x) and isinstance(x, (int, float)) else ("N/A" if pd.isna(x) else str(x))
-            else:
-                format_dict[col] = lambda x: f"{x:.4f}" if pd.notna(x) and isinstance(x, (int, float)) else ("N/A" if pd.isna(x) else str(x))
-    
-    styled_df = styled_df.format(format_dict)
-    return styled_df
-
 def create_performance_summary(df):
     """创建性能摘要"""
     summary_columns = ['Score', 'Loss', '测试集均值']
@@ -344,33 +335,38 @@ def create_performance_summary(df):
     
     return pd.DataFrame(summary_data)
 
-def main():
+def render_database_page(db_key):
+    """渲染数据库页面"""
+    config = DB_CONFIGS[db_key]
+    is_db2 = db_key == "database2"
+    
     # 页面标题
-    st.markdown('<h1 class="main-title">🏆 AI模型性能排行榜</h1>', unsafe_allow_html=True)
-    
-    # 数据源信息
-    data_source = st.session_state.get('data_source', '')
-    if data_source:
-        st.markdown(f'<div class="data-source">📊 数据源: {data_source}</div>', unsafe_allow_html=True)
-    
-    st.markdown("---")
+    emoji = "🔥" if is_db2 else "🏆"
+    title_class = "main-title"
+    st.markdown(f'<h1 class="{title_class}">{emoji} {config["name"]}模型性能排行榜</h1>', unsafe_allow_html=True)
     
     # 加载数据
     with st.spinner("🔄 正在智能加载数据..."):
-        cache = load_data()
+        cache, data_source = load_data(db_key)
+    
+    # 数据源信息
+    source_class = "data-source-db2" if is_db2 else "data-source"
+    st.markdown(f'<div class="{source_class}">📊 数据源: {data_source}</div>', unsafe_allow_html=True)
+    
+    st.markdown("---")
     
     results = cache.get("results", [])
     
     if not results:
         st.error("❌ 没有找到数据")
         st.info("**数据加载指南:**")
-        st.markdown("""
+        st.markdown(f"""
         **本地测试:**
-        1. 确保当前目录有 `cache.json` 文件
-        2. 运行: `python update_cache.py` 生成数据
+        1. 确保当前目录有 `{config['cache_file']}` 文件
+        2. 运行相应的更新脚本生成数据
         
         **远程部署:**
-        1. 推送 `cache.json` 到GitHub仓库
+        1. 推送 `{config['cache_file']}` 到GitHub仓库
         2. 应用会自动从GitHub加载数据
         """)
         return
@@ -441,10 +437,11 @@ def main():
     
     # 统计卡片
     col1, col2, col3, col4, col5 = st.columns(5)
+    card_class = "metric-card-db2" if is_db2 else "metric-card"
     
     with col1:
         st.markdown(f"""
-        <div class="metric-card">
+        <div class="{card_class}">
             <h3>🔢 模型总数</h3>
             <h2>{len(table_data)}</h2>
         </div>
@@ -454,7 +451,7 @@ def main():
         complete_count = sum(1 for _, row in df.iterrows() 
                            if sum(pd.isna(row[col]) for col in ['ARC Challenge', 'ARC Easy', 'BoolQ'] if col in row) == 0)
         st.markdown(f"""
-        <div class="metric-card">
+        <div class="{card_class}">
             <h3>✅ 完整数据</h3>
             <h2>{complete_count}</h2>
         </div>
@@ -467,14 +464,14 @@ def main():
             if not numeric_score.isna().all():
                 max_score = numeric_score.max()
                 st.markdown(f"""
-                <div class="metric-card">
+                <div class="{card_class}">
                     <h3>🎯 最高Score</h3>
                     <h2>{max_score:.4f}</h2>
                 </div>
                 """, unsafe_allow_html=True)
             else:
                 st.markdown(f"""
-                <div class="metric-card">
+                <div class="{card_class}">
                     <h3>🎯 最高Score</h3>
                     <h2>N/A</h2>
                 </div>
@@ -488,7 +485,7 @@ def main():
             except:
                 pass
         st.markdown(f"""
-        <div class="metric-card">
+        <div class="{card_class}">
             <h3>🕒 最后更新</h3>
             <h2>{last_update}</h2>
         </div>
@@ -502,7 +499,7 @@ def main():
                     baseline_perf = f"{row['测试集均值']:.3f}"
                 break
         st.markdown(f"""
-        <div class="metric-card">
+        <div class="{card_class}">
             <h3>🏁 Baseline</h3>
             <h2>{baseline_perf}</h2>
         </div>
@@ -510,8 +507,9 @@ def main():
     
     # 说明
     st.markdown("---")
-    st.markdown("""
-    <div class="legend">
+    legend_class = "legend-db2" if is_db2 else "legend"
+    st.markdown(f"""
+    <div class="{legend_class}">
         <strong>📖 图例说明:</strong><br>
         🟢 <strong>绿色高亮</strong>: 该列最优值 (Score、测试集均值、各benchmark越高越好，Loss越低越好)<br>
         🟡 <strong>黄色背景 + 橙色左边框</strong>: delta_net (Baseline模型)<br>
@@ -524,15 +522,15 @@ def main():
     
     # 侧边栏选项
     with st.sidebar:
-        st.header("🎛️ 显示选项")
+        st.header(f"🎛️ {config['name']}显示选项")
         
         # 排序选项
         sort_options = ["模型名称", "Score", "Loss", "测试集均值"]
-        sort_by = st.selectbox("排序依据", sort_options, index=1)  # 默认按Score排序
-        sort_ascending = st.checkbox("升序排列", value=False)
+        sort_by = st.selectbox("排序依据", sort_options, index=1, key=f"sort_{db_key}")
+        sort_ascending = st.checkbox("升序排列", value=False, key=f"asc_{db_key}")
         
         # 筛选选项
-        show_only_complete = st.checkbox("只显示完整数据", value=False)
+        show_only_complete = st.checkbox("只显示完整数据", value=False, key=f"complete_{db_key}")
         
         # Score范围筛选
         if 'Score' in df.columns:
@@ -545,14 +543,15 @@ def main():
                     min_value=min_score, 
                     max_value=max_score, 
                     value=(min_score, max_score),
-                    step=0.001
+                    step=0.001,
+                    key=f"score_range_{db_key}"
                 )
             else:
                 score_range = None
         else:
             score_range = None
         
-        if st.button("🔄 重新加载数据"):
+        if st.button("🔄 重新加载数据", key=f"reload_{db_key}"):
             st.cache_data.clear()
             st.rerun()
     
@@ -580,9 +579,65 @@ def main():
         else:
             display_df = display_df.sort_values(sort_by, ascending=sort_ascending)
     
+    # 高亮函数
+    def highlight_cells(data):
+        """高亮最优值和baseline行"""
+        styles = pd.DataFrame('', index=data.index, columns=data.columns)
+        
+        # 定义需要高亮的列
+        score_column = 'Score'
+        loss_column = 'Loss'
+        avg_column = '测试集均值'
+        benchmark_columns = [
+            'ARC Challenge', 'ARC Easy', 'BoolQ', 'FDA', 'HellaSwag', 
+            'LAMBDA OpenAI', 'OpenBookQA', 'PIQA', 'Social IQA', 
+            'SQuAD Completion', 'SWDE', 'WinoGrande'
+        ]
+        
+        # 高亮Score最高值
+        if score_column in data.columns:
+            numeric_series = pd.to_numeric(data[score_column], errors='coerce')
+            if not numeric_series.isna().all():
+                max_idx = numeric_series.idxmax()
+                styles.loc[max_idx, score_column] = 'background-color: #28a745; color: white; font-weight: bold; border-radius: 3px'
+        
+        # 高亮Loss最低值  
+        if loss_column in data.columns:
+            numeric_series = pd.to_numeric(data[loss_column], errors='coerce')
+            if not numeric_series.isna().all():
+                min_idx = numeric_series.idxmin()
+                styles.loc[min_idx, loss_column] = 'background-color: #28a745; color: white; font-weight: bold; border-radius: 3px'
+        
+        # 高亮测试集均值最高值
+        if avg_column in data.columns:
+            numeric_series = pd.to_numeric(data[avg_column], errors='coerce')
+            if not numeric_series.isna().all():
+                max_idx = numeric_series.idxmax()
+                styles.loc[max_idx, avg_column] = 'background-color: #28a745; color: white; font-weight: bold; border-radius: 3px'
+        
+        # 高亮各个benchmark的最优值
+        for col in benchmark_columns:
+            if col in data.columns:
+                numeric_series = pd.to_numeric(data[col], errors='coerce')
+                if not numeric_series.isna().all():
+                    max_idx = numeric_series.idxmax()
+                    styles.loc[max_idx, col] = 'background-color: #28a745; color: white; font-weight: bold; border-radius: 3px'
+        
+        # 高亮baseline行（delta_net）
+        for idx in data.index:
+            model_name = str(data.loc[idx, '模型名称']).lower()
+            if model_name == 'delta_net':
+                for col in data.columns:
+                    if styles.loc[idx, col] == '':
+                        styles.loc[idx, col] = 'background-color: #fff3cd; border-left: 4px solid #ffc107; font-weight: bold'
+                    else:
+                        styles.loc[idx, col] += '; border-left: 4px solid #ffc107'
+        
+        return styles
+    
     # 显示表格
     st.dataframe(
-        display_df,
+        display_df.style.apply(highlight_cells, axis=None),
         use_container_width=True,
         height=min(700, len(display_df) * 45 + 100),
         hide_index=True
@@ -605,13 +660,14 @@ def main():
             chart_df = df.dropna(subset=['Score']).nlargest(5, 'Score')
             
             if not chart_df.empty:
+                color_scale = 'reds' if is_db2 else 'viridis'
                 fig = px.bar(
                     chart_df,
                     x='Score',
                     y='模型名称',
                     orientation='h',
                     color='Score',
-                    color_continuous_scale='viridis',
+                    color_continuous_scale=color_scale,
                     title="Top 5 模型Score排行"
                 )
                 fig.update_layout(
@@ -632,20 +688,47 @@ def main():
         st.download_button(
             label="📥 下载当前表格 (CSV)",
             data=csv_data,
-            file_name=f'ai_model_results_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv',
-            mime='text/csv'
+            file_name=f'{config["name"]}_results_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv',
+            mime='text/csv',
+            key=f"download_{db_key}"
         )
     
     with col2:
-        if st.button("📊 显示数据统计"):
+        if st.button("📊 显示数据统计", key=f"stats_{db_key}"):
             st.info(f"""
-            **数据统计:**
+            **{config['name']}数据统计:**
             - 总模型数: {len(df)}
             - 显示模型数: {len(display_df)}
-            - 数据来源: {st.session_state.get('data_source', '未知')}
+            - 数据来源: {data_source}
             - 最后更新: {cache.get('last_update', '未知')}
             - 有Score数据: {len(df.dropna(subset=['Score']))} 个模型
             """)
+
+def main():
+    # 初始化页面状态
+    if 'current_page' not in st.session_state:
+        st.session_state.current_page = "database1"
+    
+    # 页面导航
+    st.markdown("### 🗂️ 数据库选择")
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        if st.button("🏆 数据库1 (45.78.231.212)", 
+                    use_container_width=True,
+                    type="primary" if st.session_state.current_page == "database1" else "secondary"):
+            st.session_state.current_page = "database1"
+    
+    with col2:
+        if st.button("🔥 数据库2 (10.252.176.14)", 
+                    use_container_width=True,
+                    type="primary" if st.session_state.current_page == "database2" else "secondary"):
+            st.session_state.current_page = "database2"
+    
+    st.markdown("---")
+    
+    # 渲染当前选中的页面
+    render_database_page(st.session_state.current_page)
 
 if __name__ == "__main__":
     main()
