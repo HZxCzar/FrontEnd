@@ -373,6 +373,7 @@ def render_database_page(db_key):
     
     # 处理数据，按新的列顺序组织
     table_data = []
+    delta_net_row = None
     
     for result in results:
         if not result.get('name'):
@@ -427,13 +428,46 @@ def render_database_page(db_key):
         for dataset in benchmark_datasets:
             row[dataset] = benchmark_data[dataset]
         
-        table_data.append(row)
+        # 检查是否是delta_net，如果是则单独保存
+        if str(result['name']).lower() == 'delta_net':
+            delta_net_row = row
+        else:
+            table_data.append(row)
     
-    if not table_data:
+    # 手动添加gated_delta_net作为SOTA模型（第一行）
+    gated_delta_net_row = {
+        'Index': 'SOTA',
+        '模型名称': 'gated_delta_net',
+        'Score': np.nan,  # 没有提供Score数据
+        'Loss': 4.377,
+        '测试集均值': 0.226,
+        'ARC Challenge': 0.168,
+        'ARC Easy': 0.374,
+        'BoolQ': 0.370,
+        'FDA': 0.000,
+        'HellaSwag': 0.282,
+        'LAMBDA OpenAI': 0.002,
+        'OpenBookQA': 0.144,
+        'PIQA': 0.562,
+        'Social IQA': 0.350,
+        'SQuAD Completion': 0.004,
+        'SWDE': 0.002,
+        'WinoGrande': 0.456
+    }
+    
+    # 重新组织数据：gated_delta_net在第一行，delta_net在第二行，其他按原顺序
+    final_table_data = [gated_delta_net_row]
+    
+    if delta_net_row is not None:
+        final_table_data.append(delta_net_row)
+    
+    final_table_data.extend(table_data)
+    
+    if not final_table_data:
         st.error("没有可显示的数据")
         return
     
-    df = pd.DataFrame(table_data)
+    df = pd.DataFrame(final_table_data)
     
     # 统计卡片
     col1, col2, col3, col4, col5 = st.columns(5)
