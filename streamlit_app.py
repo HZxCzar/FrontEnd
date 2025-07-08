@@ -526,16 +526,12 @@ def render_database_page(db_key):
         """, unsafe_allow_html=True)
     
     with col5:
-        baseline_perf = "N/A"
-        for _, row in df.iterrows():
-            if str(row['模型名称']).lower() == 'delta_net':
-                if '测试集均值' in row and pd.notna(row['测试集均值']):
-                    baseline_perf = f"{row['测试集均值']:.3f}"
-                break
+        # 显示SOTA模型性能而不是baseline
+        sota_perf = "0.226"  # gated_delta_net的测试集均值
         st.markdown(f"""
         <div class="{card_class}">
-            <h3>🏁 Baseline</h3>
-            <h2>{baseline_perf}</h2>
+            <h3>🥇 SOTA</h3>
+            <h2>{sota_perf}</h2>
         </div>
         """, unsafe_allow_html=True)
     
@@ -546,8 +542,10 @@ def render_database_page(db_key):
     <div class="{legend_class}">
         <strong>📖 图例说明:</strong><br>
         🟢 <strong>绿色高亮</strong>: 该列最优值 (Score、测试集均值、各benchmark越高越好，Loss越低越好)<br>
-        🟡 <strong>黄色背景 + 橙色左边框</strong>: delta_net (Baseline模型)<br>
-        📊 <strong>列顺序</strong>: 模型名称 → Score → Loss(2000步) → 测试集均值 → 12个benchmark详情
+        🥇 <strong>金色背景 + 橙色左边框</strong>: gated_delta_net (SOTA模型)<br>
+        🟡 <strong>黄色背景 + 黄色左边框</strong>: delta_net (Baseline模型)<br>
+        📊 <strong>列顺序</strong>: 模型名称 → Score → Loss(2000步) → 测试集均值 → 12个benchmark详情<br>
+        📋 <strong>排序</strong>: gated_delta_net (SOTA) → delta_net (Baseline) → 其他模型
     </div>
     """, unsafe_allow_html=True)
     
@@ -562,6 +560,8 @@ def render_database_page(db_key):
         sort_options = ["模型名称", "Score", "Loss", "测试集均值"]
         sort_by = st.selectbox("排序依据", sort_options, index=1, key=f"sort_{db_key}")
         sort_ascending = st.checkbox("升序排列", value=False, key=f"asc_{db_key}")
+        
+        st.info("📌 注意：gated_delta_net和delta_net始终固定在前两行")
         
         # 筛选选项
         show_only_complete = st.checkbox("只显示完整数据", value=False, key=f"complete_{db_key}")
@@ -605,17 +605,29 @@ def render_database_page(db_key):
         score_mask = (score_series >= score_range[0]) & (score_series <= score_range[1])
         display_df = display_df[score_mask]
     
-    # 应用排序
-    if sort_by in display_df.columns:
+    # 应用排序，但保持gated_delta_net和delta_net在前两行
+    # 分离特殊模型和普通模型
+    gated_mask = display_df['模型名称'].str.lower() == 'gated_delta_net'
+    delta_mask = display_df['模型名称'].str.lower() == 'delta_net'
+    
+    gated_rows = display_df[gated_mask]
+    delta_rows = display_df[delta_mask]
+    other_rows = display_df[~(gated_mask | delta_mask)]
+    
+    # 对其他模型应用排序
+    if sort_by in other_rows.columns and len(other_rows) > 0:
         if sort_by in ['Score', 'Loss', '测试集均值']:
-            numeric_col = pd.to_numeric(display_df[sort_by], errors='coerce')
-            display_df = display_df.loc[numeric_col.sort_values(ascending=sort_ascending).index]
+            numeric_col = pd.to_numeric(other_rows[sort_by], errors='coerce')
+            other_rows = other_rows.loc[numeric_col.sort_values(ascending=sort_ascending).index]
         else:
-            display_df = display_df.sort_values(sort_by, ascending=sort_ascending)
+            other_rows = other_rows.sort_values(sort_by, ascending=sort_ascending)
+    
+    # 重新组合：gated_delta_net -> delta_net -> 其他模型
+    display_df = pd.concat([gated_rows, delta_rows, other_rows], ignore_index=True)
     
     # 高亮函数
     def highlight_cells(data):
-        """高亮最优值和baseline行"""
+        """高亮最优值、SOTA模型和baseline行"""
         styles = pd.DataFrame('', index=data.index, columns=data.columns)
         
         # 定义需要高亮的列
@@ -657,7 +669,17 @@ def render_database_page(db_key):
                     max_idx = numeric_series.idxmax()
                     styles.loc[max_idx, col] = 'background-color: #28a745; color: white; font-weight: bold; border-radius: 3px'
         
-        # 高亮baseline行（delta_net）
+        # 高亮gated_delta_net（SOTA模型）- 金色
+        for idx in data.index:
+            model_name = str(data.loc[idx, '模型名称']).lower()
+            if model_name == 'gated_delta_net':
+                for col in data.columns:
+                    if styles.loc[idx, col] == '':
+                        styles.loc[idx, col] = 'background-color: #ffd700; color: #000; font-weight: bold; border-left: 4px solid #ff8c00; box-shadow: 0 2px 4px rgba(255, 215, 0, 0.3)'
+                    else:
+                        styles.loc[idx, col] += '; border-left: 4px solid #ff8c00; box-shadow: 0 2px 4px rgba(255, 215, 0, 0.3)'
+        
+        # 高亮delta_net（baseline行）- 黄色
         for idx in data.index:
             model_name = str(data.loc[idx, '模型名称']).lower()
             if model_name == 'delta_net':
